@@ -17,6 +17,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Objects;
+import shortener.core.port.StorageException;
 
 final class JsonStorageFile {
     private final Path path;

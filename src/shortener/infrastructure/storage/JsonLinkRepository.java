@@ -10,6 +10,7 @@ import java.util.function.UnaryOperator;
 import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
 import shortener.core.port.LinkRepository;
+import shortener.core.port.StorageException;
 
 public final class JsonLinkRepository implements LinkRepository {
     private final JsonStorageFile file;

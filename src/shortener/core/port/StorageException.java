@@ -1,4 +1,4 @@
-package shortener.infrastructure.storage;
+package shortener.core.port;
 
 public final class StorageException extends IllegalStateException {
     public StorageException(String message) {
