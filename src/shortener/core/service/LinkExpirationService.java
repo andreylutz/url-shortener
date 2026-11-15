@@ -50,14 +50,10 @@ public final class LinkExpirationService {
         if (!link.isExpiredAt(clock.instant())) {
             return false;
         }
-        notifyExpired(link);
-        return true;
-    }
-
-    private void notifyExpired(ShortLink link) {
         if (!link.expirationNotified()) {
             repository.addNotification(Notification.expired(link, shortLinkPrefix));
             repository.update(link.code(), ShortLink::markExpirationNotified);
         }
+        return true;
     }
 }

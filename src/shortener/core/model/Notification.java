@@ -11,25 +11,20 @@ public record Notification(UUID ownerId, String shortLink, String message) {
         }
     }
 
-    public static Notification expired(ShortLink link, String prefix) {
-        String shortLink = prefix + link.code();
-        return new Notification(
-                link.ownerId(),
-                shortLink,
-                "Срок действия ссылки "
-                        + shortLink
-                        + " истёк. Переходы заблокированы. Создайте новую ссылку.");
+    public static Notification expired(ShortLink link, String shortLinkPrefix) {
+        String shortLink = shortLinkPrefix + link.code();
+        String message =
+                "Срок действия ссылки %s истёк. Переходы заблокированы. Создайте новую ссылку."
+                        .formatted(shortLink);
+        return new Notification(link.ownerId(), shortLink, message);
     }
 
-    public static Notification limitReached(ShortLink link, String prefix) {
-        String shortLink = prefix + link.code();
-        return new Notification(
-                link.ownerId(),
-                shortLink,
-                "Для ссылки "
-                        + shortLink
-                        + " достигнут лимит "
-                        + link.visitLimit()
-                        + " переходов. Увеличьте лимит до истечения срока действия или создайте новую ссылку.");
+    public static Notification limitReached(ShortLink link, String shortLinkPrefix) {
+        String shortLink = shortLinkPrefix + link.code();
+        String message =
+                ("Для ссылки %s достигнут лимит %s переходов. "
+                                + "Увеличьте лимит до истечения срока действия или создайте новую ссылку.")
+                        .formatted(shortLink, link.visitLimit());
+        return new Notification(link.ownerId(), shortLink, message);
     }
 }

@@ -1,9 +1,9 @@
 package shortener.core.service;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 import shortener.core.model.ShortLink;
 import shortener.core.model.UrlValidator;
 import shortener.core.port.LinkRepository;
@@ -37,30 +37,11 @@ public final class LinkManagementService {
     }
 
     public ShortLink changeVisitLimit(String shortLink, int newLimit) {
-        UUID userId = session.requireUserId();
-        String code = parser.parseCode(shortLink);
-        return repository.executeExclusively(
-                () -> {
-                    ShortLink link = requireOwnedLink(code, userId, shortLink);
-                    expiration.requireActive(link);
-                    return repository
-                            .update(code, stored -> stored.withVisitLimit(newLimit))
-                            .orElseThrow();
-                });
+        return updateOwnLink(shortLink, link -> link.withVisitLimit(newLimit));
     }
 
     public ShortLink changeOriginalUrl(String shortLink, String newUrl) {
-        UUID userId = session.requireUserId();
-        String code = parser.parseCode(shortLink);
-        return repository.executeExclusively(
-                () -> {
-                    ShortLink link = requireOwnedLink(code, userId, shortLink);
-                    expiration.requireActive(link);
-                    URI originalUri = UrlValidator.parse(newUrl);
-                    return repository
-                            .update(code, stored -> stored.withOriginalUri(originalUri))
-                            .orElseThrow();
-                });
+        return updateOwnLink(shortLink, link -> link.withOriginalUri(UrlValidator.parse(newUrl)));
     }
 
     public void deleteOwnLink(String shortLink) {
@@ -72,6 +53,17 @@ public final class LinkManagementService {
                     expiration.notifyIfExpired(link);
                     repository.remove(code);
                     return null;
+                });
+    }
+
+    private ShortLink updateOwnLink(String shortLink, UnaryOperator<ShortLink> update) {
+        UUID userId = session.requireUserId();
+        String code = parser.parseCode(shortLink);
+        return repository.executeExclusively(
+                () -> {
+                    ShortLink link = requireOwnedLink(code, userId, shortLink);
+                    expiration.requireActive(link);
+                    return repository.update(code, update).orElseThrow();
                 });
     }
 

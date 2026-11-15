@@ -62,7 +62,7 @@ public final class Main {
             LinkExpirationService expiration,
             Clock clock) {
         UserSession session = new UserSession();
-        ShortLinkService users =
+        ShortLinkService shortLinks =
                 new ShortLinkService(
                         repository,
                         session,
@@ -90,7 +90,7 @@ public final class Main {
                         config.shortLinkPrefix(),
                         config.codeLength(),
                         clock);
-        ConsoleCommands commands = new ConsoleCommands(users, management, opening, view);
+        ConsoleCommands commands = new ConsoleCommands(shortLinks, management, opening, view);
         return new ConsoleApplication(
                 new InputStreamReader(System.in, StandardCharsets.UTF_8), commands, view);
     }

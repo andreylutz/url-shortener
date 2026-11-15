@@ -202,6 +202,9 @@ class LinkManagementServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> management.changeVisitLimit(address(foreign), 10));
+        assertThrows(
+                IllegalStateException.class,
+                () -> management.changeVisitLimit(address(foreign), 0));
 
         assertEquals(foreign, repository.findByCode(foreign.code()).orElseThrow());
     }
@@ -213,6 +216,9 @@ class LinkManagementServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> management.changeOriginalUrl(address(foreign), "https://example.org/New"));
+        assertThrows(
+                IllegalStateException.class,
+                () -> management.changeOriginalUrl(address(foreign), "invalid"));
 
         assertEquals(foreign, repository.findByCode(foreign.code()).orElseThrow());
     }
@@ -330,6 +336,9 @@ class LinkManagementServiceTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> management.changeOriginalUrl(address(link), "https://example.org/New"));
+        assertThrows(
+                IllegalStateException.class,
+                () -> management.changeOriginalUrl(address(link), "invalid"));
 
         ShortLink stored = repository.findByCode(link.code()).orElseThrow();
         assertEquals(before.markExpirationNotified(), stored);
