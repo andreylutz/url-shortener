@@ -25,8 +25,7 @@ public final class LinkExpirationService {
                 () -> {
                     int removed = 0;
                     for (ShortLink link : repository.findAll()) {
-                        if (link.isExpiredAt(clock.instant())) {
-                            notifyExpired(link);
+                        if (notifyIfExpired(link)) {
                             repository.remove(link.code());
                             removed++;
                         }
@@ -37,14 +36,22 @@ public final class LinkExpirationService {
 
     /** Вызывается внутри исключительного доступа к хранилищу после чтения актуальной записи. */
     void requireActive(ShortLink link) {
-        if (link.isExpiredAt(clock.instant())) {
-            notifyExpired(link);
+        if (notifyIfExpired(link)) {
             throw new IllegalStateException(
                     "Переход по ссылке "
                             + shortLinkPrefix
                             + link.code()
                             + " заблокирован: срок действия истёк. Создайте новую ссылку.");
         }
+    }
+
+    /** Вызывается под общей блокировкой, в том числе при удалении ссылки владельцем. */
+    boolean notifyIfExpired(ShortLink link) {
+        if (!link.isExpiredAt(clock.instant())) {
+            return false;
+        }
+        notifyExpired(link);
+        return true;
     }
 
     private void notifyExpired(ShortLink link) {

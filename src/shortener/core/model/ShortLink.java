@@ -69,6 +69,39 @@ public record ShortLink(
         return expirationNotified || !now.isBefore(expiresAt);
     }
 
+    public ShortLink withVisitLimit(int newLimit) {
+        if (newLimit <= 0) {
+            throw new IllegalArgumentException("Лимит переходов должен быть положительным.");
+        }
+        if (newLimit <= usedCount) {
+            throw new IllegalArgumentException(
+                    "Новый лимит должен быть больше использованного числа переходов: "
+                            + usedCount
+                            + ".");
+        }
+        return new ShortLink(
+                code,
+                ownerId,
+                originalUri,
+                newLimit,
+                usedCount,
+                createdAt,
+                expiresAt,
+                expirationNotified);
+    }
+
+    public ShortLink withOriginalUri(URI newUri) {
+        return new ShortLink(
+                code,
+                ownerId,
+                newUri,
+                visitLimit,
+                usedCount,
+                createdAt,
+                expiresAt,
+                expirationNotified);
+    }
+
     public ShortLink markExpirationNotified() {
         return new ShortLink(
                 code, ownerId, originalUri, visitLimit, usedCount, createdAt, expiresAt, true);

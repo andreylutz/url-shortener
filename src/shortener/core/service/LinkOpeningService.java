@@ -12,7 +12,7 @@ public final class LinkOpeningService {
     private final BrowserOpener browser;
     private final LinkExpirationService expiration;
     private final String shortLinkPrefix;
-    private final int codeLength;
+    private final ShortLinkParser parser;
 
     public LinkOpeningService(
             LinkRepository repository,
@@ -23,18 +23,12 @@ public final class LinkOpeningService {
         this.repository = Objects.requireNonNull(repository);
         this.browser = Objects.requireNonNull(browser);
         this.expiration = Objects.requireNonNull(expiration);
-        if (shortLinkPrefix == null || shortLinkPrefix.isBlank()) {
-            throw new IllegalArgumentException("Префикс коротких ссылок не должен быть пустым.");
-        }
-        if (codeLength <= 0) {
-            throw new IllegalArgumentException("Длина короткого кода должна быть положительной.");
-        }
+        this.parser = new ShortLinkParser(shortLinkPrefix, codeLength);
         this.shortLinkPrefix = shortLinkPrefix;
-        this.codeLength = codeLength;
     }
 
     public ShortLink open(String shortLink) {
-        String code = parseCode(shortLink);
+        String code = parser.parseCode(shortLink);
         return repository.executeExclusively(
                 () -> {
                     ShortLink link =
@@ -76,28 +70,5 @@ public final class LinkOpeningService {
             repository.addNotification(Notification.limitReached(opened, shortLinkPrefix));
         }
         return opened;
-    }
-
-    private String parseCode(String shortLink) {
-        if (shortLink == null || shortLink.isBlank()) {
-            throw new IllegalArgumentException("Укажите короткую ссылку.");
-        }
-        if (!shortLink.startsWith(shortLinkPrefix)) {
-            throw new IllegalArgumentException(
-                    "Некорректная короткая ссылка "
-                            + shortLink
-                            + ": ожидается префикс "
-                            + shortLinkPrefix);
-        }
-        String code = shortLink.substring(shortLinkPrefix.length());
-        if (code.length() != codeLength || !code.matches("[A-Za-z0-9]+")) {
-            throw new IllegalArgumentException(
-                    "Некорректная короткая ссылка "
-                            + shortLink
-                            + ": код должен содержать "
-                            + codeLength
-                            + " латинских букв или цифр.");
-        }
-        return code;
     }
 }

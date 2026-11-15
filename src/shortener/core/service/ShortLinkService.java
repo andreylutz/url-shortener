@@ -1,7 +1,6 @@
 package shortener.core.service;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,7 +15,6 @@ import shortener.core.port.LinkRepository;
 
 public final class ShortLinkService {
     private static final int MAX_GENERATION_ATTEMPTS = 100;
-    private static final int MAX_PORT = 65535;
 
     private final LinkRepository repository;
     private final UserSession session;
@@ -52,7 +50,7 @@ public final class ShortLinkService {
     }
 
     public synchronized ShortLink create(String url, Integer requestedVisitLimit) {
-        URI originalUri = parseOriginalUri(url);
+        URI originalUri = UrlValidator.parse(url);
         int visitLimit = requestedVisitLimit == null ? defaultVisitLimit : requestedVisitLimit;
         if (visitLimit <= 0) {
             throw new IllegalArgumentException("Лимит переходов должен быть положительным.");
@@ -97,13 +95,7 @@ public final class ShortLinkService {
     }
 
     public synchronized List<Notification> readNotifications() {
-        UUID userId =
-                session.currentUserId()
-                        .orElseThrow(
-                                () ->
-                                        new IllegalStateException(
-                                                "Сначала выберите пользователя по UUID."));
-        return repository.drainNotifications(userId);
+        return repository.drainNotifications(session.requireUserId());
     }
 
     private UUID generateUserId() {
@@ -129,27 +121,5 @@ public final class ShortLinkService {
             throw new IllegalArgumentException("Неверный формат UUID пользователя.");
         }
         return userId;
-    }
-
-    private URI parseOriginalUri(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Укажите исходный URL.");
-        }
-        URI uri;
-        try {
-            uri = new URI(value);
-        } catch (URISyntaxException exception) {
-            throw new IllegalArgumentException("Некорректный синтаксис URL.", exception);
-        }
-        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
-                || uri.getHost() == null) {
-            throw new IllegalArgumentException(
-                    "Укажите абсолютный URL http или https с адресом узла.");
-        }
-        if (uri.getPort() == 0 || uri.getPort() > MAX_PORT) {
-            throw new IllegalArgumentException(
-                    "Порт URL должен быть в диапазоне от 1 до " + MAX_PORT + ".");
-        }
-        return uri;
     }
 }

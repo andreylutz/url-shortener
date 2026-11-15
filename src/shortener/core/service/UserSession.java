@@ -10,6 +10,12 @@ public final class UserSession {
         return Optional.ofNullable(currentUserId);
     }
 
+    UUID requireUserId() {
+        return currentUserId()
+                .orElseThrow(
+                        () -> new IllegalStateException("Сначала выберите пользователя по UUID."));
+    }
+
     void select(UUID userId) {
         currentUserId = userId;
     }
