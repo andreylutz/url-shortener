@@ -34,4 +34,12 @@ public record ShortLink(
                     "Время истечения должно быть позже времени создания.");
         }
     }
+
+    public ShortLink recordSuccessfulOpen() {
+        if (usedCount >= visitLimit) {
+            throw new IllegalStateException("Лимит переходов исчерпан.");
+        }
+        return new ShortLink(
+                code, ownerId, originalUri, visitLimit, usedCount + 1, createdAt, expiresAt);
+    }
 }
