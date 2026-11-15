@@ -5,9 +5,11 @@ import java.net.URISyntaxException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
 import shortener.core.port.CodeGenerator;
 import shortener.core.port.LinkRepository;
@@ -92,6 +94,16 @@ public final class ShortLinkService {
 
     public synchronized Optional<UUID> currentUserId() {
         return session.currentUserId();
+    }
+
+    public synchronized List<Notification> readNotifications() {
+        UUID userId =
+                session.currentUserId()
+                        .orElseThrow(
+                                () ->
+                                        new IllegalStateException(
+                                                "Сначала выберите пользователя по UUID."));
+        return repository.drainNotifications(userId);
     }
 
     private UUID generateUserId() {

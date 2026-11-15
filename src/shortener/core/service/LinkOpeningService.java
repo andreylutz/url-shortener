@@ -1,6 +1,7 @@
 package shortener.core.service;
 
 import java.util.Objects;
+import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
 import shortener.core.port.BrowserException;
 import shortener.core.port.BrowserOpener;
@@ -9,16 +10,19 @@ import shortener.core.port.LinkRepository;
 public final class LinkOpeningService {
     private final LinkRepository repository;
     private final BrowserOpener browser;
+    private final LinkExpirationService expiration;
     private final String shortLinkPrefix;
     private final int codeLength;
 
     public LinkOpeningService(
             LinkRepository repository,
             BrowserOpener browser,
+            LinkExpirationService expiration,
             String shortLinkPrefix,
             int codeLength) {
         this.repository = Objects.requireNonNull(repository);
         this.browser = Objects.requireNonNull(browser);
+        this.expiration = Objects.requireNonNull(expiration);
         if (shortLinkPrefix == null || shortLinkPrefix.isBlank()) {
             throw new IllegalArgumentException("Префикс коротких ссылок не должен быть пустым.");
         }
@@ -31,10 +35,20 @@ public final class LinkOpeningService {
 
     public ShortLink open(String shortLink) {
         String code = parseCode(shortLink);
-        return repository
-                .update(code, link -> openAndCount(link, shortLink))
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Ссылка " + shortLink + " не найдена."));
+        return repository.executeExclusively(
+                () -> {
+                    ShortLink link =
+                            repository
+                                    .findByCode(code)
+                                    .orElseThrow(
+                                            () ->
+                                                    new IllegalArgumentException(
+                                                            "Ссылка "
+                                                                    + shortLink
+                                                                    + " не найдена."));
+                    expiration.requireActive(link);
+                    return openAndCount(link, shortLink);
+                });
     }
 
     private ShortLink openAndCount(ShortLink link, String shortLink) {
@@ -56,7 +70,12 @@ public final class LinkOpeningService {
                             + " Переход не израсходован.",
                     exception);
         }
-        return link.recordSuccessfulOpen();
+        ShortLink opened =
+                repository.update(link.code(), ShortLink::recordSuccessfulOpen).orElseThrow();
+        if (opened.usedCount() == opened.visitLimit()) {
+            repository.addNotification(Notification.limitReached(opened, shortLinkPrefix));
+        }
+        return opened;
     }
 
     private String parseCode(String shortLink) {

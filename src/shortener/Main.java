@@ -2,8 +2,14 @@ package shortener;
 
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.util.concurrent.Executors;
+import shortener.core.service.LinkExpirationService;
+import shortener.infrastructure.config.AppConfig;
 import shortener.infrastructure.config.ConfigLoader;
 import shortener.infrastructure.config.ConfigurationException;
+import shortener.infrastructure.scheduling.PeriodicCleanup;
+import shortener.infrastructure.storage.InMemoryLinkRepository;
 
 public final class Main {
     private static final Path DEFAULT_CONFIG_PATH = Path.of("config/application.properties");
@@ -13,9 +19,23 @@ public final class Main {
     public static void main(String[] args) {
         try {
             Path configPath = resolveConfigPath(args);
-            new ConfigLoader().load(configPath);
-            System.out.println("Настройки приложения загружены из " + configPath + ".");
-        } catch (ConfigurationException exception) {
+            AppConfig config = new ConfigLoader().load(configPath);
+            InMemoryLinkRepository repository = new InMemoryLinkRepository();
+            LinkExpirationService expiration =
+                    new LinkExpirationService(
+                            repository, Clock.systemUTC(), config.shortLinkPrefix());
+            try (PeriodicCleanup cleanup =
+                    new PeriodicCleanup(
+                            expiration::cleanup,
+                            config.cleanupInterval(),
+                            Executors.newSingleThreadScheduledExecutor(),
+                            exception ->
+                                    System.err.println(
+                                            "Ошибка фоновой очистки: " + exception.getMessage()))) {
+                cleanup.start();
+                System.out.println("Настройки приложения загружены из " + configPath + ".");
+            }
+        } catch (ConfigurationException | IllegalStateException exception) {
             System.err.println("Ошибка запуска: " + exception.getMessage());
             System.exit(1);
         }

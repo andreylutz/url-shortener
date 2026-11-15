@@ -9,13 +9,21 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
 import shortener.core.port.LinkRepository;
 
 public final class InMemoryLinkRepository implements LinkRepository {
     private final Map<String, ShortLink> links = new LinkedHashMap<>();
     private final Set<UUID> users = new HashSet<>();
+    private final Map<UUID, List<Notification>> notifications = new LinkedHashMap<>();
+
+    @Override
+    public synchronized <T> T executeExclusively(Supplier<T> operation) {
+        return operation.get();
+    }
 
     @Override
     public synchronized boolean add(ShortLink link) {
@@ -63,5 +71,31 @@ public final class InMemoryLinkRepository implements LinkRepository {
     @Override
     public synchronized boolean userExists(UUID userId) {
         return users.contains(userId);
+    }
+
+    @Override
+    public synchronized List<ShortLink> findAll() {
+        return List.copyOf(links.values());
+    }
+
+    @Override
+    public synchronized boolean remove(String code) {
+        return links.remove(code) != null;
+    }
+
+    @Override
+    public synchronized void addNotification(Notification notification) {
+        if (!users.contains(notification.ownerId())) {
+            throw new IllegalArgumentException("Получатель уведомления не найден.");
+        }
+        notifications
+                .computeIfAbsent(notification.ownerId(), ignored -> new ArrayList<>())
+                .add(notification);
+    }
+
+    @Override
+    public synchronized List<Notification> drainNotifications(UUID ownerId) {
+        List<Notification> pending = notifications.remove(ownerId);
+        return pending == null ? List.of() : List.copyOf(pending);
     }
 }

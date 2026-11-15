@@ -12,7 +12,19 @@ public record ShortLink(
         int visitLimit,
         int usedCount,
         Instant createdAt,
-        Instant expiresAt) {
+        Instant expiresAt,
+        boolean expirationNotified) {
+
+    public ShortLink(
+            String code,
+            UUID ownerId,
+            URI originalUri,
+            int visitLimit,
+            int usedCount,
+            Instant createdAt,
+            Instant expiresAt) {
+        this(code, ownerId, originalUri, visitLimit, usedCount, createdAt, expiresAt, false);
+    }
 
     public ShortLink {
         if (code == null || !code.matches("[A-Za-z0-9]+")) {
@@ -36,10 +48,29 @@ public record ShortLink(
     }
 
     public ShortLink recordSuccessfulOpen() {
+        if (expirationNotified) {
+            throw new IllegalStateException("Срок действия ссылки истёк.");
+        }
         if (usedCount >= visitLimit) {
             throw new IllegalStateException("Лимит переходов исчерпан.");
         }
         return new ShortLink(
-                code, ownerId, originalUri, visitLimit, usedCount + 1, createdAt, expiresAt);
+                code,
+                ownerId,
+                originalUri,
+                visitLimit,
+                usedCount + 1,
+                createdAt,
+                expiresAt,
+                expirationNotified);
+    }
+
+    public boolean isExpiredAt(Instant now) {
+        return expirationNotified || !now.isBefore(expiresAt);
+    }
+
+    public ShortLink markExpirationNotified() {
+        return new ShortLink(
+                code, ownerId, originalUri, visitLimit, usedCount, createdAt, expiresAt, true);
     }
 }

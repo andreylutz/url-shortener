@@ -3,10 +3,18 @@ package shortener.core.port;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
 
 public interface LinkRepository {
+    /**
+     * Исключает одновременное выполнение составных операций над ссылками и уведомлениями.
+     * Изменения, выполненные до исключения, сохраняются: отказ по TTL может создавать уведомление.
+     */
+    <T> T executeExclusively(Supplier<T> operation);
+
     /**
      * Добавляет ссылку и регистрирует её владельца одной операцией. Занятый код возвращает false
      * без изменения хранилища.
@@ -24,5 +32,13 @@ public interface LinkRepository {
 
     List<ShortLink> findByOwner(UUID ownerId);
 
+    List<ShortLink> findAll();
+
+    boolean remove(String code);
+
     boolean userExists(UUID userId);
+
+    void addNotification(Notification notification);
+
+    List<Notification> drainNotifications(UUID ownerId);
 }
