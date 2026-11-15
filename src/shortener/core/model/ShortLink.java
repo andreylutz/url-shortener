@@ -32,7 +32,7 @@ public record ShortLink(
                     "Короткий код должен содержать только буквы и цифры.");
         }
         Objects.requireNonNull(ownerId, "Не указан владелец ссылки.");
-        Objects.requireNonNull(originalUri, "Не указан исходный URI.");
+        originalUri = UrlValidator.validate(originalUri);
         Objects.requireNonNull(createdAt, "Не указано время создания ссылки.");
         Objects.requireNonNull(expiresAt, "Не указано время истечения ссылки.");
         if (visitLimit <= 0) {

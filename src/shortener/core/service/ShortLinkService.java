@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import shortener.core.model.Notification;
 import shortener.core.model.ShortLink;
+import shortener.core.model.UrlValidator;
 import shortener.core.port.CodeGenerator;
 import shortener.core.port.LinkRepository;
 

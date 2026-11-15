@@ -1,8 +1,8 @@
 package shortener.infrastructure.storage;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -17,8 +17,32 @@ import shortener.core.port.LinkRepository;
 
 public final class InMemoryLinkRepository implements LinkRepository {
     private final Map<String, ShortLink> links = new LinkedHashMap<>();
-    private final Set<UUID> users = new HashSet<>();
+    private final Set<UUID> users = new LinkedHashSet<>();
     private final Map<UUID, List<Notification>> notifications = new LinkedHashMap<>();
+
+    static InMemoryLinkRepository fromSnapshot(StorageSnapshot snapshot) {
+        InMemoryLinkRepository repository = new InMemoryLinkRepository();
+        repository.users.addAll(snapshot.users());
+        for (ShortLink link : snapshot.links()) {
+            repository.links.put(link.code(), link);
+        }
+        for (Notification notification : snapshot.notifications()) {
+            repository.addNotification(notification);
+        }
+        return repository;
+    }
+
+    synchronized StorageSnapshot snapshot() {
+        List<Notification> pending = new ArrayList<>();
+        for (List<Notification> queue : notifications.values()) {
+            pending.addAll(queue);
+        }
+        return new StorageSnapshot(
+                StorageSnapshot.CURRENT_VERSION,
+                List.copyOf(users),
+                List.copyOf(links.values()),
+                pending);
+    }
 
     @Override
     public synchronized <T> T executeExclusively(Supplier<T> operation) {

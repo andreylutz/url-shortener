@@ -1,14 +1,15 @@
-package shortener.core.service;
+package shortener.core.model;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
-final class UrlValidator {
+public final class UrlValidator {
     private static final int MAX_PORT = 65535;
 
     private UrlValidator() {}
 
-    static URI parse(String value) {
+    public static URI parse(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("Укажите исходный URL.");
         }
@@ -18,6 +19,11 @@ final class UrlValidator {
         } catch (URISyntaxException exception) {
             throw new IllegalArgumentException("Некорректный синтаксис URL.", exception);
         }
+        return validate(uri);
+    }
+
+    public static URI validate(URI uri) {
+        Objects.requireNonNull(uri, "Не указан исходный URI.");
         if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
                 || uri.getHost() == null) {
             throw new IllegalArgumentException(

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import shortener.core.model.ShortLink;
+import shortener.core.model.UrlValidator;
 import shortener.core.port.LinkRepository;
 
 public final class LinkManagementService {

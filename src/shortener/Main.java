@@ -9,7 +9,7 @@ import shortener.infrastructure.config.AppConfig;
 import shortener.infrastructure.config.ConfigLoader;
 import shortener.infrastructure.config.ConfigurationException;
 import shortener.infrastructure.scheduling.PeriodicCleanup;
-import shortener.infrastructure.storage.InMemoryLinkRepository;
+import shortener.infrastructure.storage.JsonLinkRepository;
 
 public final class Main {
     private static final Path DEFAULT_CONFIG_PATH = Path.of("config/application.properties");
@@ -20,7 +20,7 @@ public final class Main {
         try {
             Path configPath = resolveConfigPath(args);
             AppConfig config = new ConfigLoader().load(configPath);
-            InMemoryLinkRepository repository = new InMemoryLinkRepository();
+            JsonLinkRepository repository = new JsonLinkRepository(config.storagePath());
             LinkExpirationService expiration =
                     new LinkExpirationService(
                             repository, Clock.systemUTC(), config.shortLinkPrefix());
